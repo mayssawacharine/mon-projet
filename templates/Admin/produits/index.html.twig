@@ -1,85 +1,213 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Produits - Admin{% endblock %}
+{% block title %}Gestion des Produits - Admin{% endblock %}
 
 {% block body %}
-    <div class="container-fluid mt-4">
-        <h1 class="mb-4">Gestion des Produits</h1>
-
-        <!-- Boutons d'action -->
-        <div class="mb-4">
-            <a href="#" class="btn btn-success">
-                <i class="fas fa-plus"></i> Ajouter un produit
-            </a>
-            <a href="{{ path('admin_dashboard') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Retour au Dashboard
-            </a>
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center py-4">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-boxes me-2"></i>Gestion des Produits
+                </h1>
+                <p class="text-muted mb-0">Gérez tous vos produits en un seul endroit</p>
+            </div>
+            <div>
+                <a href="{{ path('admin_produit_new') }}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i> Nouveau Produit
+                </a>
+                <a href="{{ path('admin_dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Dashboard
+                </a>
+            </div>
         </div>
 
-        <!-- Statistiques rapides -->
+        <!-- Messages Flash -->
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+
+        {% for message in app.flashes('error') %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+
+        {% for message in app.flashes('warning') %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+
+        <!-- Statistiques -->
         <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
                     <div class="card-body">
-                        <h5 class="card-title">Total Produits</h5>
-                        <h2>{{ produits|length }}</h2>
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                    Total Produits
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">{{ produits|length }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-box fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white">
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
                     <div class="card-body">
-                        <h5 class="card-title">Disponibles</h5>
-                        <h2>{{ produits|filter(p => p.disponible)|length }}</h2>
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                    Produits Disponibles
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">
+                                    {{ produits|filter(p => p.disponible)|length }}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                    Avec Image
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">
+                                    {{ produits|filter(p => p.image)|length }}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-image fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                    Prix Moyen
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">
+                                    {% set total = 0 %}
+                                    {% for p in produits %}
+                                        {% set total = total + p.prix %}
+                                    {% endfor %}
+                                    {% if produits|length > 0 %}
+                                        {{ (total / produits|length)|number_format(2, ',', ' ') }} €
+                                    {% else %}
+                                        0 €
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-euro-sign fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Liste des produits -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Liste des Produits ({{ produits|length }})</h5>
+        <!-- Barre de recherche -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-primary">
+                    <i class="fas fa-search me-2"></i>Rechercher un produit
+                </h6>
+            </div>
+            <div class="card-body">
+                <form action="{{ path('admin_produits') }}" method="get" class="row g-3">
+                    <div class="col-md-10">
+                        <input type="text"
+                               name="q"
+                               class="form-control"
+                               placeholder="Rechercher par nom ou description..."
+                               value="{{ searchTerm ?? app.request.query.get('q') ?? '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Rechercher
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tableau des produits -->
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-primary">
+                    <i class="fas fa-table me-2"></i>Liste des Produits ({{ produits|length }})
+                </h6>
+                {% if searchTerm ?? app.request.query.get('q') %}
+                    <a href="{{ path('admin_produits') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-times me-1"></i> Annuler la recherche
+                    </a>
+                {% endif %}
             </div>
             <div class="card-body">
                 {% if produits is not empty %}
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped">
-                            <thead class="table-dark">
+                        <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-light">
                             <tr>
-                                <th>ID</th>
-                                <th>Nom</th>
-                                <th>Description</th>
+                                <th width="60">ID</th>
+                                <th>Produit</th>
                                 <th>Prix</th>
                                 <th>Catégorie</th>
-                                <th>Disponible</th>
+                                <th>Statut</th>
                                 <th>Image</th>
-                                <th>Actions</th>
+                                <th width="140">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for produit in produits %}
                                 <tr>
-                                    <td><strong>#{{ produit.id }}</strong></td>
+                                    <td class="text-center fw-bold">#{{ produit.id }}</td>
                                     <td>
                                         <strong>{{ produit.nom }}</strong>
+                                        {% if produit.description %}
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ produit.description|slice(0, 80) }}
+                                                {% if produit.description|length > 80 %}...{% endif %}
+                                            </small>
+                                        {% endif %}
                                         {% if produit.administrateur %}
                                             <br>
                                             <small class="text-muted">
-                                                Créé par: {{ produit.administrateur.nom ?? 'Admin' }}
+                                                <i class="fas fa-user-tie me-1"></i>
+                                                {{ produit.administrateur.nom }}
                                             </small>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        {% if produit.description %}
-                                            {{ produit.description|slice(0, 60) }}
-                                            {% if produit.description|length > 60 %}...{% endif %}
-                                        {% else %}
-                                            <span class="text-muted">Aucune description</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info fs-6">
+                                    <td class="text-end">
+                                        <span class="badge bg-info text-white fs-6">
                                             {{ produit.prix }} €
                                         </span>
                                     </td>
@@ -93,41 +221,52 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if produit.disponible %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Disponible
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-danger">
-                                                <i class="fas fa-times"></i> Indisponible
-                                            </span>
-                                        {% endif %}
+                                        <span class="badge bg-{{ produit.disponible ? 'success' : 'danger' }}">
+                                            <i class="fas fa-{{ produit.disponible ? 'check' : 'times' }} me-1"></i>
+                                            {{ produit.disponible ? 'Disponible' : 'Indisponible' }}
+                                        </span>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         {% if produit.image %}
                                             <img src="{{ asset('uploads/produits/' ~ produit.image) }}"
                                                  alt="{{ produit.nom }}"
+                                                 class="rounded border"
                                                  width="50"
                                                  height="50"
-                                                 class="rounded"
-                                                 style="object-fit: cover;">
+                                                 style="object-fit: cover;"
+                                                 onerror="this.src='https://via.placeholder.com/50?text=No+Image'">
                                         {% else %}
                                             <span class="badge bg-light text-dark">
-                                                <i class="fas fa-image"></i> Aucune
+                                                <i class="fas fa-image me-1"></i> Aucune
                                             </span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-info" title="Voir">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ path('admin_produit_show', {'id': produit.id}) }}"
+                                               class="btn btn-info"
+                                               title="Voir détails"
+                                               data-bs-toggle="tooltip">
                                                 <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-warning" title="Éditer">
+                                            </a>
+                                            <a href="{{ path('admin_produit_edit', {'id': produit.id}) }}"
+                                               class="btn btn-warning"
+                                               title="Modifier"
+                                               data-bs-toggle="tooltip">
                                                 <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" title="Supprimer">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            </a>
+                                            <form method="post"
+                                                  action="{{ path('admin_produit_delete', {'id': produit.id}) }}"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer \'{{ produit.nom }}\' ? Cette action est irréversible.');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ produit.id) }}">
+                                                <button type="submit"
+                                                        class="btn btn-danger"
+                                                        title="Supprimer"
+                                                        data-bs-toggle="tooltip">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -136,15 +275,78 @@
                         </table>
                     </div>
                 {% else %}
-                    <div class="alert alert-info">
-                        <h5><i class="fas fa-info-circle"></i> Aucun produit trouvé</h5>
-                        <p>Commencez par ajouter votre premier produit.</p>
-                        <a href="#" class="btn btn-success">
-                            <i class="fas fa-plus"></i> Ajouter un produit
+                    <div class="text-center py-5">
+                        <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                        <h4 class="text-muted">Aucun produit trouvé</h4>
+                        <p class="text-muted mb-4">
+                            {% if searchTerm ?? app.request.query.get('q') %}
+                                Aucun résultat pour "{{ searchTerm ?? app.request.query.get('q') }}"
+                            {% else %}
+                                Commencez par ajouter votre premier produit
+                            {% endif %}
+                        </p>
+                        <a href="{{ path('admin_produit_new') }}" class="btn btn-success btn-lg">
+                            <i class="fas fa-plus me-2"></i> Ajouter un produit
                         </a>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <style>
+        .table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .badge {
+            font-size: 0.85em;
+            padding: 0.4em 0.8em;
+        }
+
+        .btn-group .btn {
+            border-radius: 0.375rem !important;
+            margin: 0 2px;
+        }
+
+        img {
+            transition: transform 0.3s;
+        }
+
+        img:hover {
+            transform: scale(1.5);
+            z-index: 1000;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+    </style>
+
+    <script>
+        // Activer les tooltips Bootstrap
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Auto-close alerts after 5 seconds
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    if (alert.classList.contains('show')) {
+                        var bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                });
+            }, 5000);
+        });
+    </script>
 {% endblock %}
