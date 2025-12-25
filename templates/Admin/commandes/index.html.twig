@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Commandes - Admin{% endblock %}
+
+{% block body %}
+    <div class="container-fluid mt-4">
+        <h1 class="mb-4">Gestion des Commandes</h1>
+
+        <!-- Filtres -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <select name="statut" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            {% for statut in statuts %}
+                                <option value="{{ statut }}" {{ app.request.query.get('statut') == statut ? 'selected' : '' }}>
+                                    {{ statut|replace({'_': ' '})|title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="date" name="date" class="form-control"
+                               value="{{ app.request.query.get('date') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Liste des commandes -->
+        <div class="card">
+            <div class="card-body">
+                {% if commandes is not empty %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Client</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for commande in commandes %}
+                                <tr>
+                                    <td>#{{ commande.id }}</td>
+                                    <td>
+                                        {{ commande.client.nom ?? '' }} {{ commande.client.prenom ?? '' }}
+                                        <br>
+                                        <small class="text-muted">{{ commande.client.email ?? '' }}</small>
+                                    </td>
+                                    <!-- CORRECTION: dateCreation -> dateCommande -->
+                                    <td>{{ commande.dateCommande|date('d/m/Y H:i') }}</td>
+                                    <td>{{ commande.montantTotal ?? 0 }} €</td>
+                                    <td>
+                                        <!-- CORRECTION: statut -> status -->
+                                        <span class="badge bg-{{
+                                        commande.status == 'terminee' ? 'success' :
+                                        commande.status == 'annulee' ? 'danger' :
+                                        'warning'
+                                        }}">
+                                            {{ commande.status|replace({'_': ' '})|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        Aucune commande trouvée.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

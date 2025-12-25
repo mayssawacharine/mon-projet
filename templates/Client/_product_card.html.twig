@@ -1,11 +1,18 @@
 {# templates/client/_product_card.html.twig #}
 <div class="card shadow-sm hover-zoom h-100 border-0">
-    {# Link to Detail Page #}
     <a href="{{ path('product_show', {'id': product.id}) }}">
-        {% set folder = (product.category and product.category.nom == 'Food') ? 'food' : 'drink' %}
+        {# CORRECTION : Utiliser les noms français #}
+        {% set folder = (product.category and product.category.nom == 'Nourriture') ? 'food' : 'drink' %}
 
-        {# Logic: Use database image if exists, otherwise try local naming, otherwise placeholder #}
-        <img src="{{ product.image ? asset('uploads/products/' ~ product.image) : asset('images/' ~ folder ~ '/' ~ product.nom|lower|replace({' ': '_'}) ~ '.jpg') }}"
+        {# Alternative plus fiable #}
+        {% if product.category %}
+            {% set folder = product.category.nom == 'Nourriture' ? 'food' : 'drink' %}
+        {% else %}
+            {# Déterminer par nom de produit #}
+            {% set folder = product.nom in ['Pizza', 'Burger', 'Pasta'] ? 'food' : 'drink' %}
+        {% endif %}
+
+        <img src="{{ asset('images/' ~ folder ~ '/' ~ product.nom ~ '.jpg') }}"
              class="card-img-top"
              alt="{{ product.nom }}"
              onerror="this.src='https://placehold.co/400x300?text={{ product.nom|url_encode }}'">

@@ -43,13 +43,15 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
     }
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
-
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
             return new RedirectResponse($targetPath);
         }
+
         $user = $token->getUser();
+
         if (in_array("ROLE_ADMIN", $user->getRoles(), strict: true)) {
-            return new RedirectResponse($this->urlGenerator->generate(name: "app_admin_dashboard"));
+            // CORRIGEZ ICI : 'admin_dashboard' au lieu de 'app_admin_dashboard'
+            return new RedirectResponse($this->urlGenerator->generate(name: "admin_dashboard"));
         }
 
         return new RedirectResponse($this->urlGenerator->generate(name: "app_client_dashboard"));

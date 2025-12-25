@@ -1,0 +1,150 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Produits - Admin{% endblock %}
+
+{% block body %}
+    <div class="container-fluid mt-4">
+        <h1 class="mb-4">Gestion des Produits</h1>
+
+        <!-- Boutons d'action -->
+        <div class="mb-4">
+            <a href="#" class="btn btn-success">
+                <i class="fas fa-plus"></i> Ajouter un produit
+            </a>
+            <a href="{{ path('admin_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour au Dashboard
+            </a>
+        </div>
+
+        <!-- Statistiques rapides -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Produits</h5>
+                        <h2>{{ produits|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Disponibles</h5>
+                        <h2>{{ produits|filter(p => p.disponible)|length }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des produits -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Liste des Produits ({{ produits|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if produits is not empty %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Description</th>
+                                <th>Prix</th>
+                                <th>Catégorie</th>
+                                <th>Disponible</th>
+                                <th>Image</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for produit in produits %}
+                                <tr>
+                                    <td><strong>#{{ produit.id }}</strong></td>
+                                    <td>
+                                        <strong>{{ produit.nom }}</strong>
+                                        {% if produit.administrateur %}
+                                            <br>
+                                            <small class="text-muted">
+                                                Créé par: {{ produit.administrateur.nom ?? 'Admin' }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if produit.description %}
+                                            {{ produit.description|slice(0, 60) }}
+                                            {% if produit.description|length > 60 %}...{% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Aucune description</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info fs-6">
+                                            {{ produit.prix }} €
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if produit.category %}
+                                            <span class="badge bg-secondary">
+                                                {{ produit.category.nom }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Non catégorisé</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if produit.disponible %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Disponible
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times"></i> Indisponible
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if produit.image %}
+                                            <img src="{{ asset('uploads/produits/' ~ produit.image) }}"
+                                                 alt="{{ produit.nom }}"
+                                                 width="50"
+                                                 height="50"
+                                                 class="rounded"
+                                                 style="object-fit: cover;">
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">
+                                                <i class="fas fa-image"></i> Aucune
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-info" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" title="Éditer">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> Aucun produit trouvé</h5>
+                        <p>Commencez par ajouter votre premier produit.</p>
+                        <a href="#" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Ajouter un produit
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,267 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Clients - Admin{% endblock %}
+
+{% block body %}
+    <div class="container mt-5">
+        <h1 class="mb-4">👥 Gestion des Clients</h1>
+
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ path('admin_dashboard') }}" class="btn btn-secondary">
+                ← Retour au Dashboard
+            </a>
+            {% if is_granted('ROLE_ADMIN') %}
+                <a href="{{ path('admin_client_new') }}" class="btn btn-success">
+                    + Nouveau Client
+                </a>
+            {% endif %}
+        </div>
+
+        {# Messages flash #}
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+
+        {% for message in app.flashes('error') %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+
+        {% if clients is empty %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Aucun client trouvé dans la base de données.
+            </div>
+        {% else %}
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users"></i> Liste des Clients
+                    </h5>
+                    <span class="badge bg-light text-dark fs-6">{{ clients|length }} client(s)</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th width="80">ID</th>
+                                <th>Nom complet</th>
+                                <th>Email</th>
+                                <th>Téléphone</th>
+                                <th>Date d'inscription</th>
+                                <th width="250" class="text-center">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for client in clients %}
+                                <tr>
+                                    <td class="fw-bold">#{{ client.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center me-3"
+                                                 style="width: 40px; height: 40px;">
+                                                {{ client.nom|first|upper }}{{ client.prenom|first|upper }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ client.nom }} {{ client.prenom }}</strong>
+                                                {% if client.adresse %}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-map-marker-alt"></i> {{ client.adresse|length > 30 ? client.adresse|slice(0, 30) ~ '...' : client.adresse }}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="mailto:{{ client.email }}" class="text-decoration-none">
+                                            <i class="fas fa-envelope me-1"></i> {{ client.email }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if client.telephone %}
+                                            <a href="tel:{{ client.telephone }}" class="text-decoration-none">
+                                                <i class="fas fa-phone me-1"></i> {{ client.telephone }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">
+                                                <i class="fas fa-phone-slash me-1"></i> Non renseigné
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ client.dateInscription|date('d/m/Y') }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">{{ client.dateInscription|date('H:i') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            {# Bouton Voir #}
+                                            <a href="{{ path('admin_client_show', {'id': client.id}) }}"
+                                               class="btn btn-sm btn-info d-flex align-items-center"
+                                               title="Voir les détails">
+                                                <i class="fas fa-eye me-1"></i> Voir
+                                            </a>
+
+                                            {# Bouton Éditer #}
+                                            <a href="{{ path('admin_client_edit', {'id': client.id}) }}"
+                                               class="btn btn-sm btn-warning d-flex align-items-center"
+                                               title="Modifier">
+                                                <i class="fas fa-edit me-1"></i> Éditer
+                                            </a>
+
+                                            {# Bouton Supprimer avec confirmation #}
+                                            {% if is_granted('ROLE_ADMIN') %}
+                                                <form method="post"
+                                                      action="{{ path('admin_client_delete', {'id': client.id}) }}"
+                                                      onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer le client {{ client.nom }} {{ client.prenom }} ? Cette action est irréversible.');"
+                                                      class="d-inline">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ client.id) }}">
+                                                    <button class="btn btn-sm btn-danger d-flex align-items-center"
+                                                            title="Supprimer">
+                                                        <i class="fas fa-trash me-1"></i> Supprimer
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small>Dernière mise à jour : {{ "now"|date('d/m/Y H:i') }}</small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small>Total : {{ clients|length }} client(s)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Statistiques supplémentaires #}
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Clients actifs</h6>
+                            <p class="card-text display-6">{{ clients|length }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Ce mois</h6>
+                            <p class="card-text display-6">
+                                {{ clients|filter(c => c.dateInscription|date('m-Y') == "now"|date('m-Y'))|length }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Avec téléphone</h6>
+                            <p class="card-text display-6">
+                                {{ clients|filter(c => c.telephone is not null and c.telephone != '')|length }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Avec adresse</h6>
+                            <p class="card-text display-6">
+                                {{ clients|filter(c => c.adresse is not null and c.adresse != '')|length }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {# Script pour les alertes #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-close alerts after 5 seconds
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+
+            // Confirmation améliorée pour la suppression
+            document.querySelectorAll('form[onsubmit]').forEach(function(form) {
+                form.onsubmit = function(e) {
+                    if (!confirm(this.getAttribute('data-confirm') || 'Êtes-vous sûr ?')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                };
+            });
+        });
+    </script>
+
+    {# Styles CSS additionnels #}
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+            transition: background-color 0.2s;
+        }
+
+        .badge {
+            font-size: 0.85em;
+            padding: 0.35em 0.65em;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            border-bottom: none;
+            padding: 1rem 1.25rem;
+        }
+
+        .table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            vertical-align: middle;
+            padding: 1rem 0.75rem;
+        }
+
+        .rounded-circle {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}

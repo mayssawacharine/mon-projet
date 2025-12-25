@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails Client #{{ client.id }} - Admin{% endblock %}
+
+{% block body %}
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>👤 Détails du Client</h1>
+                    <a href="{{ path('admin_clients') }}" class="btn btn-secondary">
+                        ← Retour à la liste
+                    </a>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Client #{{ client.id }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Informations personnelles</h6>
+                                <p><strong>Nom :</strong> {{ client.nom }}</p>
+                                <p><strong>Prénom :</strong> {{ client.prenom }}</p>
+                                <p><strong>Email :</strong> <a href="mailto:{{ client.email }}">{{ client.email }}</a></p>
+                                <p><strong>Téléphone :</strong>
+                                    {% if client.telephone %}
+                                        <a href="tel:{{ client.telephone }}">{{ client.telephone }}</a>
+                                    {% else %}
+                                        <span class="text-muted">Non renseigné</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Informations supplémentaires</h6>
+                                <p><strong>Date d'inscription :</strong> {{ client.dateInscription|date('d/m/Y H:i') }}</p>
+                                {% if client.adresse %}
+                                    <p><strong>Adresse :</strong><br>{{ client.adresse }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group">
+                            <a href="{{ path('admin_client_edit', {'id': client.id}) }}" class="btn btn-warning">
+                                ✏️ Éditer
+                            </a>
+                            <a href="{{ path('admin_clients') }}" class="btn btn-secondary">
+                                Retour à la liste
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -28,7 +28,13 @@
                     </li>
                     <li class="nav-item">
                         {% if app.user %}
-                            <a class="btn btn-primary text-white px-4" href="{{ path('app_client_dashboard') }}">Dashboard</a>
+                            {# === LIGNE CORRIGÉE ICI === #}
+                            <a class="btn btn-primary text-white px-4" href="{{ path('app_client_dashboard') }}">
+                                Dashboard
+                            </a>
+                            <a class="btn btn-outline-danger ms-2" href="{{ path('app_logout') }}">
+                                Déconnexion
+                            </a>
                         {% else %}
                             <a class="btn btn-primary text-white px-4" href="{{ path('app_login') }}">Login</a>
                         {% endif %}

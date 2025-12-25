@@ -8,11 +8,6 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * @extends ServiceEntityRepository<Produit>
- *
- * @method Produit|null find($id, $lockMode = null, $lockVersion = null)
- * @method Produit|null findOneBy(array $criteria, array $orderBy = null)
- * @method Produit[]    findAll()
- * @method Produit[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 class ProduitRepository extends ServiceEntityRepository
 {
@@ -22,14 +17,48 @@ class ProduitRepository extends ServiceEntityRepository
     }
 
     /**
-     * Fetch products based on search, category, and sorting preferences.
-     *
-     * @param string|null $search The search query for the product name
-     * @param string|null $categoryName The name of the category (e.g., 'Drinks' or 'Food')
-     * @param string|null $sortAlpha Sorting order for name ('asc' or 'desc')
-     * @param string|null $sortPrice Sorting order for price ('low' or 'high')
-     * @return Produit[]
+     * Méthode pour l'admin - retourne tous les produits avec leur catégorie
      */
+    public function findAllWithCategory(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.category', 'c')
+            ->addSelect('c')
+            ->orderBy('p.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Recherche des produits (pour filtres admin)
+     */
+    public function search(string $search = null, string $category = null, bool $disponible = null): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->leftJoin('p.category', 'c')
+            ->addSelect('c');
+
+        if ($search) {
+            $qb->andWhere('p.nom LIKE :search OR p.description LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
+        }
+
+        if ($category) {
+            $qb->andWhere('c.nom = :category')
+                ->setParameter('category', $category);
+        }
+
+        if ($disponible !== null) {
+            $qb->andWhere('p.disponible = :disponible')
+                ->setParameter('disponible', $disponible);
+        }
+
+        return $qb->orderBy('p.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    // Méthode existante que tu avais déjà
     public function findFilteredProducts(?string $search, ?string $categoryName, ?string $sortAlpha, ?string $sortPrice): array
     {
         $qb = $this->createQueryBuilder('p')
@@ -42,31 +71,30 @@ class ProduitRepository extends ServiceEntityRepository
         }
 
         if ($categoryName) {
-            // We use LIKE to be less strict with caps/plurals
             $qb->andWhere('c.nom LIKE :catName')
                 ->setParameter('catName', '%' . $categoryName . '%');
         }
 
-        // --- SORTING LOGIC FIX ---
-        // If user picks a price sort, make it the FIRST priority
         if ($sortPrice === 'low') {
             $qb->orderBy('p.prix', 'ASC');
         } elseif ($sortPrice === 'high') {
             $qb->orderBy('p.prix', 'DESC');
         }
 
-        // If user picks alpha sort, add it.
-        // If price was already set, this becomes the second priority.
         if ($sortAlpha === 'asc') {
-            if ($sortPrice) { $qb->addOrderBy('p.nom', 'ASC'); }
-            else { $qb->orderBy('p.nom', 'ASC'); }
+            if ($sortPrice) {
+                $qb->addOrderBy('p.nom', 'ASC');
+            } else {
+                $qb->orderBy('p.nom', 'ASC');
+            }
         } elseif ($sortAlpha === 'desc') {
-            if ($sortPrice) { $qb->addOrderBy('p.nom', 'DESC'); }
-            else { $qb->orderBy('p.nom', 'DESC'); }
+            if ($sortPrice) {
+                $qb->addOrderBy('p.nom', 'DESC');
+            } else {
+                $qb->orderBy('p.nom', 'DESC');
+            }
         }
 
         return $qb->getQuery()->getResult();
     }
-
-    // You can keep or remove the commented methods below depending on your needs
 }

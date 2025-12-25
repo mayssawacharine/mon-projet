@@ -31,13 +31,15 @@ class Commande
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $addresseLivraison = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    // ============ CORRECTION : AJOUT DE nullable: true ============
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dateLivraison = null;
+    // ==============================================================
 
     /**
      * @var Collection<int, LigneCommande>
      */
-    #[ORM\OneToMany(targetEntity: LigneCommande::class, mappedBy: 'commande')]
+    #[ORM\OneToMany(targetEntity: LigneCommande::class, mappedBy: 'commande', cascade: ['persist', 'remove'])]
     private Collection $ligneCommandes;
 
     #[ORM\ManyToOne(inversedBy: 'commandes')]
@@ -50,6 +52,11 @@ class Commande
     public function __construct()
     {
         $this->ligneCommandes = new ArrayCollection();
+        // Valeurs par défaut optionnelles
+        $this->dateLivraison = (new \DateTime())->modify('+1 day');
+        $this->montantTotal = '0.00';
+        $this->status = 'en_attente';
+        $this->modePaiement = 'à la livraison';
     }
 
     public function getId(): ?int
@@ -65,7 +72,6 @@ class Commande
     public function setDateCommande(\DateTimeInterface $dateCommande): static
     {
         $this->dateCommande = $dateCommande;
-
         return $this;
     }
 
@@ -77,7 +83,6 @@ class Commande
     public function setMontantTotal(string $montantTotal): static
     {
         $this->montantTotal = $montantTotal;
-
         return $this;
     }
 
@@ -89,7 +94,6 @@ class Commande
     public function setStatus(string $status): static
     {
         $this->status = $status;
-
         return $this;
     }
 
@@ -101,7 +105,6 @@ class Commande
     public function setModePaiement(string $modePaiement): static
     {
         $this->modePaiement = $modePaiement;
-
         return $this;
     }
 
@@ -113,7 +116,6 @@ class Commande
     public function setAddresseLivraison(?string $addresseLivraison): static
     {
         $this->addresseLivraison = $addresseLivraison;
-
         return $this;
     }
 
@@ -122,10 +124,9 @@ class Commande
         return $this->dateLivraison;
     }
 
-    public function setDateLivraison(\DateTimeInterface $dateLivraison): static
+    public function setDateLivraison(?\DateTimeInterface $dateLivraison): static
     {
         $this->dateLivraison = $dateLivraison;
-
         return $this;
     }
 
@@ -150,7 +151,6 @@ class Commande
     public function removeLigneCommande(LigneCommande $ligneCommande): static
     {
         if ($this->ligneCommandes->removeElement($ligneCommande)) {
-            // set the owning side to null (unless already changed)
             if ($ligneCommande->getCommande() === $this) {
                 $ligneCommande->setCommande(null);
             }
@@ -167,7 +167,6 @@ class Commande
     public function setClient(?Client $client): static
     {
         $this->client = $client;
-
         return $this;
     }
 
@@ -179,7 +178,16 @@ class Commande
     public function setAdministrateur(?Administrateur $administrateur): static
     {
         $this->administrateur = $administrateur;
-
         return $this;
+    }
+
+    // Méthode utilitaire pour calculer le total
+    public function calculerMontantTotal(): float
+    {
+        $total = 0;
+        foreach ($this->ligneCommandes as $ligne) {
+            $total += (float)$ligne->getPrixUnitaire() * $ligne->getQuantite();
+        }
+        return $total;
     }
 }

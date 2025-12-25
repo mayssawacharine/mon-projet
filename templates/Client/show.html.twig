@@ -7,12 +7,15 @@
         <div class="row">
             {# 1. Product Image #}
             <div class="col-md-6">
-                {% set folder = (produit.category.nom == 'Food') ? 'food' : 'drink' %}
-                {# We use a placeholder because you don't have the images yet #}
-                <img src="{{ asset('images/' ~ folder ~ '/' ~ produit.nom|lower|replace({' ': '_'}) ~ '.jpg') }}"
+                {# CORRECTION ICI : Utiliser 'Nourriture' au lieu de 'Food' #}
+                {% set folder = (produit.category.nom == 'Nourriture') ? 'food' : 'drink' %}
+
+                {# CORRECTION 2 : Supprimer |lower pour garder la majuscule #}
+                <img src="{{ asset('images/' ~ folder ~ '/' ~ produit.nom|replace({' ': '_'}) ~ '.jpg') }}"
                      class="img-fluid rounded shadow w-100"
                      alt="{{ produit.nom }}"
-                     onerror="this.src='https://via.placeholder.com/600x400?text={{ produit.nom|replace({' ': '+'}) }}'">
+                     style="max-height: 500px; object-fit: cover;"
+                     onerror="this.onerror=null; this.src='{{ asset('images/' ~ folder ~ '/' ~ produit.nom|lower|replace({' ': '_'}) ~ '.jpg') }}'; this.onerror=function(){this.src='https://via.placeholder.com/600x400?text={{ produit.nom|replace({' ': '+'}) }}';}">
             </div>
 
             {# 2. Product Details #}
