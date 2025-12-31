@@ -1,6 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Dashboard Client - {{ client.prenom }} {{ client.nom }}{% endblock %}
+{% block title %}
+    Dashboard -
+    {% if client.prenom is defined %}
+        {{ client.prenom }} {{ client.nom }}
+    {% else %}
+        Administrateur
+    {% endif %}
+{% endblock %}
 
 {% block body %}
     <div class="container-fluid py-4">
@@ -11,7 +18,15 @@
                     <div class="card-body p-4">
                         <div class="row align-items-center">
                             <div class="col-md-8">
-                                <h1 class="display-6 fw-bold mb-2">Bonjour {{ client.prenom }} 👋</h1>
+                                <h1 class="display-6 fw-bold mb-2">
+                                    Bonjour
+                                    {% if client.prenom is defined %}
+                                        {{ client.prenom }}
+                                    {% else %}
+                                        Admin
+                                    {% endif %}
+                                    👋
+                                </h1>
                                 <p class="text-muted mb-0">Bienvenue sur votre espace personnel</p>
                             </div>
                             <div class="col-md-4 text-end">
@@ -19,8 +34,8 @@
                                     <a href="{{ path('app_reservation_new') }}" class="btn btn-primary">
                                         <i class="bi bi-plus-circle me-2"></i>Nouvelle réservation
                                     </a>
-                                    <a href="{{ path('home') }}" class="btn btn-outline-primary">
-                                        <i class="bi bi-shop me-2"></i>Voir le menu
+                                    <a href="{{ path('app_home') }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-store me-2"></i>Voir le menu
                                     </a>
                                 </div>
                             </div>
@@ -83,7 +98,14 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="card-subtitle mb-2 opacity-75">Membre depuis</h6>
-                                <h2 class="card-title mb-0">{{ client.dateInscription|date('M Y') }}</h2>
+                                <h2 class="card-title mb-0">
+                                    {# ▼ CORRECTED: Check if dateInscription exists ▼ #}
+                                    {% if client.dateInscription is defined and client.dateInscription is not null %}
+                                        {{ client.dateInscription|date('M Y') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </h2>
                             </div>
                             <i class="bi bi-person-circle fs-1 opacity-50"></i>
                         </div>
@@ -132,7 +154,13 @@
                                 <div class="list-group list-group-flush">
                                     <div class="list-group-item d-flex justify-content-between">
                                         <span class="fw-bold">Nom complet</span>
-                                        <span>{{ client.prenom }} {{ client.nom }}</span>
+                                        <span>
+                                            {% if client.prenom is defined %}
+                                                {{ client.prenom }} {{ client.nom }}
+                                            {% else %}
+                                                Administrateur
+                                            {% endif %}
+                                        </span>
                                     </div>
                                     <div class="list-group-item d-flex justify-content-between">
                                         <span class="fw-bold">Email</span>
@@ -140,15 +168,33 @@
                                     </div>
                                     <div class="list-group-item d-flex justify-content-between">
                                         <span class="fw-bold">Téléphone</span>
-                                        <span>{{ client.telephone }}</span>
+                                        <span>
+                                            {% if client.telephone is defined %}
+                                                {{ client.telephone }}
+                                            {% else %}
+                                                Non renseigné
+                                            {% endif %}
+                                        </span>
                                     </div>
                                     <div class="list-group-item d-flex justify-content-between">
                                         <span class="fw-bold">Adresse</span>
-                                        <span>{{ client.adresse }}</span>
+                                        <span>
+                                            {% if client.adresse is defined %}
+                                                {{ client.adresse }}
+                                            {% else %}
+                                                Non renseignée
+                                            {% endif %}
+                                        </span>
                                     </div>
                                     <div class="list-group-item d-flex justify-content-between">
                                         <span class="fw-bold">Membre depuis</span>
-                                        <span>{{ client.dateInscription|date('d/m/Y') }}</span>
+                                        <span>
+                                            {% if client.dateInscription is defined and client.dateInscription is not null %}
+                                                {{ client.dateInscription|date('d/m/Y') }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -252,7 +298,7 @@
                         <i class="bi bi-cart-x display-1 text-muted mb-3"></i>
                         <h4 class="text-muted">Aucune commande passée</h4>
                         <p class="text-muted mb-4">Vous n'avez pas encore passé de commande.</p>
-                        <a href="{{ path('home') }}" class="btn btn-primary">
+                        <a href="{{ path('app_home') }}" class="btn btn-primary">
                             <i class="bi bi-shop me-2"></i>Découvrir notre menu
                         </a>
                     </div>

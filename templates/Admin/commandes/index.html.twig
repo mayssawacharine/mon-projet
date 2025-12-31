@@ -1,78 +1,142 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Commandes - Admin{% endblock %}
+{% block title %}Gestion des Commandes{% endblock %}
 
 {% block body %}
-    <div class="container-fluid mt-4">
-        <h1 class="mb-4">Gestion des Commandes</h1>
+    <div class="container-fluid mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2"><i class="fas fa-clipboard-list text-primary me-2"></i>Gestion des Commandes</h1>
+            <span class="badge bg-secondary">{{ commandes|length }} commandes total</span>
+        </div>
 
-        <!-- Filtres -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form method="get" class="row g-3">
+        {# === 1. FILTERS SECTION === #}
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-body bg-light rounded">
+                <form method="get" class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <select name="statut" class="form-select">
+                        <label class="form-label fw-bold text-muted">Filtrer par statut</label>
+                        <select name="statut" class="form-select border-0 shadow-sm">
                             <option value="">Tous les statuts</option>
-                            {% for statut in statuts %}
-                                <option value="{{ statut }}" {{ app.request.query.get('statut') == statut ? 'selected' : '' }}>
-                                    {{ statut|replace({'_': ' '})|title }}
+                            {% for s in statuts %}
+                                <option value="{{ s }}" {{ app.request.query.get('statut') == s ? 'selected' : '' }}>
+                                    {{ s|replace({'_': ' '})|capitalize }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <input type="date" name="date" class="form-control"
+                        <label class="form-label fw-bold text-muted">Filtrer par date</label>
+                        <input type="date" name="date" class="form-control border-0 shadow-sm"
                                value="{{ app.request.query.get('date') }}">
                     </div>
                     <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm">
+                            <i class="fas fa-filter me-2"></i>Appliquer les filtres
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Liste des commandes -->
-        <div class="card">
-            <div class="card-body">
+        {# === 2. ORDERS TABLE === #}
+        <div class="card shadow border-0">
+            <div class="card-body p-0">
                 {% if commandes is not empty %}
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
                             <tr>
-                                <th>ID</th>
-                                <th>Client</th>
-                                <th>Date</th>
-                                <th>Montant</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
+                                <th class="py-3 ps-4">ID</th>
+                                <th class="py-3">Client</th>
+                                <th class="py-3">Date Commande</th>
+                                <th class="py-3">Montant</th>
+                                <th class="py-3">Paiement</th>
+                                <th class="py-3 text-center">Statut</th>
+                                <th class="py-3 text-end pe-4">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for commande in commandes %}
                                 <tr>
-                                    <td>#{{ commande.id }}</td>
+                                    <td class="ps-4 fw-bold text-primary">#{{ commande.id }}</td>
                                     <td>
-                                        {{ commande.client.nom ?? '' }} {{ commande.client.prenom ?? '' }}
-                                        <br>
-                                        <small class="text-muted">{{ commande.client.email ?? '' }}</small>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-initials bg-light text-primary rounded-circle me-2 d-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ commande.client.nom ?? 'Inconnu' }} {{ commande.client.prenom ?? '' }}</div>
+                                                <div class="small text-muted">{{ commande.client.email ?? 'Pas d\'email' }}</div>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <!-- CORRECTION: dateCreation -> dateCommande -->
-                                    <td>{{ commande.dateCommande|date('d/m/Y H:i') }}</td>
-                                    <td>{{ commande.montantTotal ?? 0 }} €</td>
                                     <td>
-                                        <!-- CORRECTION: statut -> status -->
-                                        <span class="badge bg-{{
-                                        commande.status == 'terminee' ? 'success' :
-                                        commande.status == 'annulee' ? 'danger' :
-                                        'warning'
-                                        }}">
-                                            {{ commande.status|replace({'_': ' '})|title }}
+                                        <i class="far fa-calendar-alt text-muted me-1"></i>
+                                        {{ commande.dateCommande|date('d/m/Y') }}
+                                        <br>
+                                        <small class="text-muted"><i class="far fa-clock me-1"></i>{{ commande.dateCommande|date('H:i') }}</small>
+                                    </td>
+                                    <td class="fw-bold text-success">{{ commande.montantTotal|number_format(2, ',', ' ') }} €</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            {{ commande.modePaiement|default('Non spécifié') }}
                                         </span>
                                     </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
+                                    <td class="text-center">
+                                        {# Logic to choose badge color #}
+                                        {% set badgeClass =
+                                            commande.status == 'terminee' ? 'success' :
+                                            commande.status == 'annulee' ? 'danger' :
+                                            commande.status == 'en_cours' ? 'primary' :
+                                            'warning'
+                                        %}
+                                        <span class="badge bg-{{ badgeClass }} rounded-pill px-3 py-2">
+                                            {{ commande.status|replace({'_': ' '})|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            {# Button to view details (optional) #}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" title="Voir détails">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+
+                                            {# Dropdown for Status Change #}
+                                            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-tasks me-1"></i> État
+                                            </button>
+
+                                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                                <li><h6 class="dropdown-header">Modifier le statut</h6></li>
+
+                                                {% set possibleStatuses = {
+                                                    'en_attente': 'En attente',
+                                                    'en_cours': 'En cours',
+                                                    'terminee': 'Terminée',
+                                                    'annulee': 'Annulée'
+                                                } %}
+
+                                                {% for key, label in possibleStatuses %}
+                                                    {% if commande.status != key %}
+                                                        <li>
+                                                            <form action="{{ path('admin_commande_update_status', {'id': commande.id}) }}" method="post">
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('update_status_' ~ commande.id) }}">
+                                                                <input type="hidden" name="statut" value="{{ key }}">
+
+                                                                <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between">
+                                                                    <span>{{ label }}</span>
+                                                                    {% if key == 'terminee' %}<i class="fas fa-check-circle text-success"></i>
+                                                                    {% elseif key == 'annulee' %}<i class="fas fa-times-circle text-danger"></i>
+                                                                    {% elseif key == 'en_cours' %}<i class="fas fa-spinner text-primary"></i>
+                                                                    {% else %}<i class="fas fa-hourglass-start text-warning"></i>
+                                                                    {% endif %}
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -80,8 +144,13 @@
                         </table>
                     </div>
                 {% else %}
-                    <div class="alert alert-info">
-                        Aucune commande trouvée.
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="fas fa-box-open fa-3x text-muted"></i>
+                        </div>
+                        <h5 class="text-muted">Aucune commande trouvée</h5>
+                        <p class="text-muted">Essayez de modifier les filtres de recherche.</p>
+                        <a href="{{ path('admin_commandes') }}" class="btn btn-outline-primary">Réinitialiser les filtres</a>
                     </div>
                 {% endif %}
             </div>

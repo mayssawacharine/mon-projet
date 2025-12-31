@@ -3,21 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Welcome!{% endblock %}</title>
+
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
 
     {% block stylesheets %}
-        {# Bootstrap CSS via CDN #}
+        <!-- Bootstrap 5 CSS -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <!-- FontAwesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
         {{ encore_entry_link_tags('app') }}
+
+        <style>
+            :root {
+                --primary-color: #0d6efd; /* Carrefour Blue */
+            }
+            body {
+                background-color: #f8f9fa;
+            }
+            /* Navbar Styles */
+            .navbar-brand {
+                font-weight: 800;
+                letter-spacing: 1px;
+            }
+
+            /* Modal & Offcanvas Styles */
+            .nav-pills .nav-link {
+                color: #6c757d;
+                border-radius: 50px;
+                padding: 10px 25px;
+                font-weight: 600;
+            }
+            .nav-pills .nav-link.active {
+                background-color: var(--primary-color);
+                color: white;
+            }
+            .modal-content {
+                border-radius: 20px;
+                border: none;
+            }
+        </style>
     {% endblock %}
 
     {% block javascripts %}
         {{ encore_entry_script_tags('app') }}
-        {# Bootstrap JS via CDN (optionnel si besoin de composants JS) #}
+        <!-- Bootstrap 5 JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     {% endblock %}
 </head>
 <body>
+
+<!-- 1. HEADER / NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top" style="z-index: 1020;">
+    <div class="container-fluid px-4">
+
+        <div class="d-flex align-items-center">
+            <!-- LOGO -->
+            <a class="navbar-brand me-4" href="{{ path('app_home') }}">
+                <i class="fas fa-utensils me-2 text-primary"></i><span class="fw-bold">RESTO</span>
+            </a>
+
+            <!-- MENU BUTTON (Offcanvas Trigger) -->
+            <button class="btn btn-outline-secondary rounded-3 d-flex align-items-center gap-2 me-4" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
+                <i class="fas fa-bars"></i>
+                <span class="d-none d-md-inline fw-bold">Menu</span>
+            </button>
+        </div>
+
+        <!-- SEARCH BAR -->
+        <div class="flex-grow-1 mx-lg-5 d-none d-lg-block">
+            <form class="d-flex" action="{{ path('app_home') }}" method="get">
+                <div class="input-group">
+                    <input class="form-control border-end-0 bg-light" type="search" name="q" placeholder="Pain, lait, oeuf..." aria-label="Search" value="{{ app.request.query.get('q') }}">
+                    <button class="btn btn-primary px-4" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT ICONS -->
+        <button class="navbar-toggler ms-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse flex-grow-0" id="navbarNav">
+            <ul class="navbar-nav align-items-center gap-3">
+
+                <!-- Search for Mobile -->
+                <li class="nav-item d-lg-none w-100 my-2">
+                    <form class="d-flex" action="{{ path('app_home') }}" method="get">
+                        <input class="form-control me-2" type="search" name="q" placeholder="Search...">
+                        <button class="btn btn-primary" type="submit">Go</button>
+                    </form>
+                </li>
+
+                <!-- User Login -->
+                <li class="nav-item">
+                    {% if app.user %}
+                        <div class="dropdown">
+                            <button class="btn btn-light rounded-pill dropdown-toggle px-3" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i> {{ app.user.email|split('@')[0] }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                                {% if is_granted('ROLE_ADMIN') %}
+                                    <li><a class="dropdown-item fw-bold text-danger" href="{{ path('admin_dashboard') }}">Administration</a></li>
+                                {% else %}
+                                    <li><a class="dropdown-item" href="{{ path('app_client_dashboard') }}">Mon Dashboard</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{{ path('app_logout') }}">Déconnexion</a></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <button type="button" class="btn btn-light rounded-pill px-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#authModal">
+                            <i class="far fa-user"></i> <span>Se Connecter</span>
+                        </button>
+                    {% endif %}
+                </li>
+
+                <!-- Cart -->
+                <li class="nav-item">
+                    <a class="btn btn-primary rounded-pill position-relative px-4 d-flex align-items-center gap-2" href="{{ path('app_cart') }}">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="d-none d-md-inline">Panier</span>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
+                                {% if app.session.get('cart') is defined %}
+                                    {{ app.session.get('cart')|length }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- 2. OFFCANVAS SIDEBAR MENU -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel">
+    <div class="offcanvas-header bg-primary text-white">
+        <h5 class="offcanvas-title fw-bold" id="offcanvasMenuLabel"><i class="fas fa-utensils me-2"></i> Nos Rayons</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="list-group list-group-flush">
+
+            <!-- ▼▼▼ ADMIN LINK ADDED HERE ▼▼▼ -->
+            {% if is_granted('ROLE_ADMIN') %}
+                <a href="{{ path('admin_dashboard') }}" class="list-group-item list-group-item-action py-3 fw-bold text-danger bg-light">
+                    <i class="fas fa-tachometer-alt me-3"></i> Dashboard Admin
+                </a>
+            {% endif %}
+            <!-- ▲▲▲ END ADMIN LINK ▲▲▲ -->
+
+            <a href="{{ path('app_home') }}" class="list-group-item list-group-item-action py-3 fw-bold">
+                <i class="fas fa-th-large me-3 text-primary"></i> Tous les produits
+            </a>
+
+            <!-- FAVORITES LINK -->
+            <a href="{{ path('app_favorite') }}" class="list-group-item list-group-item-action py-3">
+                <i class="fas fa-heart me-3 text-danger"></i> Mes Favoris
+                <span class="badge bg-danger rounded-pill ms-auto">
+                    {{ app.session.get('favorites')|default([])|length }}
+                </span>
+            </a>
+
+            <a href="{{ path('app_home', {'category': 'Food'}) }}" class="list-group-item list-group-item-action py-3">
+                <i class="fas fa-hamburger me-3 text-warning"></i> Nourriture (Food)
+            </a>
+            <a href="{{ path('app_home', {'category': 'Drinks'}) }}" class="list-group-item list-group-item-action py-3">
+                <i class="fas fa-glass-martini-alt me-3 text-info"></i> Boissons (Drinks)
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 3. MAIN CONTENT -->
 {% block body %}{% endblock %}
+
+<!-- 4. AUTH MODAL (Login / Register) -->
+{% if not app.user %}
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <!-- Modal Tabs -->
+                <div class="modal-header border-0 pb-0 justify-content-center pt-4">
+                    <ul class="nav nav-pills bg-light rounded-pill p-1" id="pills-tab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill" id="pills-login-tab" data-bs-toggle="pill" data-bs-target="#pills-login" type="button" role="tab">Connexion</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill" id="pills-register-tab" data-bs-toggle="pill" data-bs-target="#pills-register" type="button" role="tab">Inscription</button>
+                        </li>
+                    </ul>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4 p-md-5">
+                    <div class="tab-content" id="pills-tabContent">
+                        <!-- TAB 1: LOGIN -->
+                        <div class="tab-pane fade show active" id="pills-login" role="tabpanel">
+                            <h4 class="text-center fw-bold mb-2 text-primary">Veuillez Vous Connecter</h4>
+                            <p class="text-center text-muted mb-4">Heureux de vous revoir !</p>
+                            <form action="{{ path('app_login') }}" method="post">
+                                <div class="mb-3"><div class="form-floating">
+                                        <input type="email" name="email" class="form-control bg-light border-0" id="loginEmail" placeholder="name@example.com" required value="{{ last_username|default('') }}">
+                                        <label for="loginEmail">E-mail</label>
+                                    </div></div>
+                                <div class="mb-3"><div class="form-floating">
+                                        <input type="password" name="password" class="form-control bg-light border-0" id="loginPass" placeholder="Password" required>
+                                        <label for="loginPass">Mot de passe</label>
+                                    </div></div>
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="rememberMe" name="_remember_me">
+                                        <label class="form-check-label text-muted small" for="rememberMe">Rester connecté</label>
+                                    </div>
+                                    <a href="#" class="text-primary small text-decoration-none">Mot de passe oublié?</a>
+                                </div>
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                                <button type="submit" class="btn btn-primary w-100 btn-lg rounded-pill fw-bold">Me connecter</button>
+                            </form>
+                        </div>
+                        <!-- TAB 2: REGISTER -->
+                        <div class="tab-pane fade" id="pills-register" role="tabpanel">
+                            <h4 class="text-center fw-bold mb-2">Créer un compte</h4>
+                            <p class="text-center text-muted mb-4">Rejoignez-nous aujourd'hui.</p>
+
+                            {# IMPORTANT: Point the action to your route 'app_register' #}
+                            <form action="{{ path('app_register') }}" method="post">
+
+                                {# 1. Prénom & Nom #}
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="form-floating">
+                                            {# Name must match: client_registration_form[prenom] #}
+                                            <input type="text" name="client_registration_form[prenom]" class="form-control bg-light border-0" id="regPrenom" placeholder="Prénom" required>
+                                            <label for="regPrenom">Prénom</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-floating">
+                                            <input type="text" name="client_registration_form[nom]" class="form-control bg-light border-0" id="regNom" placeholder="Nom" required>
+                                            <label for="regNom">Nom</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        {# name must be client_registration_form[adresse] #}
+                                        <textarea name="client_registration_form[adresse]" class="form-control bg-light border-0" id="regAddress" placeholder="Adresse" style="height: 80px;" required></textarea>
+                                        <label for="regAddress">Adresse de livraison</label>
+                                    </div>
+                                </div>
+
+                                {# 2. === TELEPHONE ADDED HERE === #}
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="tel" name="client_registration_form[telephone]" class="form-control bg-light border-0" id="regPhone" placeholder="Téléphone" required>
+                                        <label for="regPhone">Téléphone</label>
+                                    </div>
+                                </div>
+
+                                {# 3. Email #}
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="email" name="client_registration_form[email]" class="form-control bg-light border-0" id="regEmail" placeholder="name@example.com" required>
+                                        <label for="regEmail">E-mail</label>
+                                    </div>
+                                </div>
+
+
+
+                                {# 4. Password #}
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        {# Note: plainPassword is not in the entity, but mapped in the form type #}
+                                        <input type="password" name="client_registration_form[plainPassword]" class="form-control bg-light border-0" id="regPass" placeholder="Password" required>
+                                        <label for="regPass">Mot de passe</label>
+                                    </div>
+                                </div>
+
+                                {# 5. CSRF Token (Crucial for Symfony Security) #}
+                                <input type="hidden" name="client_registration_form[_token]" value="{{ csrf_token('client_registration_form') }}">
+
+                                <button type="submit" class="btn btn-outline-primary w-100 btn-lg rounded-pill fw-bold">S'inscrire</button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
 </body>
 </html>

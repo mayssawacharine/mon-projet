@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Favoris{% endblock %}
+
+{% block body %}
+    <div class="container py-5">
+        <h2 class="fw-bold mb-4"><i class="fas fa-heart text-danger me-2"></i> Mes Favoris</h2>
+
+        {% if products is empty %}
+            <div class="text-center py-5 bg-light rounded-4">
+                <i class="far fa-heart fa-3x text-muted mb-3"></i>
+                <h4>Votre liste de favoris est vide</h4>
+                <p class="text-muted">Cliquez sur le cœur pour sauvegarder des produits.</p>
+                <a href="{{ path('app_home') }}" class="btn btn-primary rounded-pill px-4">Découvrir les produits</a>
+            </div>
+        {% else %}
+            <div class="row g-3">
+                {% for product in products %}
+                    <div class="col-6 col-md-4 col-xl-3">
+                        <div class="card h-100 border-0 shadow-sm rounded-4 product-card position-relative">
+
+                            <!-- Favorite Toggle (Always Active/Red here) -->
+                            <a href="{{ path('favorite_toggle', {'id': product.id}) }}" class="btn btn-link position-absolute top-0 end-0 p-3" style="z-index: 10;">
+                                <i class="fas fa-heart text-danger fs-5"></i>
+                            </a>
+
+                            <!-- Image -->
+                            <div class="p-3 pb-0 text-center">
+                                {% if product.image %}
+                                    <img src="{{ asset('uploads/produits/' ~ product.image) }}"
+                                         class="img-fluid rounded-3"
+                                         alt="{{ product.nom }}"
+                                         style="height: 180px; object-fit: contain;">
+                                {% else %}
+                                    <div class="bg-light rounded-3 d-flex align-items-center justify-content-center" style="height: 180px;">
+                                        <i class="fas fa-camera fa-2x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Body -->
+                            <div class="card-body d-flex flex-column">
+                                <small class="text-danger fw-bold mb-1">
+                                    {{ product.category.nom ?? 'Produit' }}
+                                </small>
+                                <h6 class="card-title fw-bold text-dark text-truncate mb-2">
+                                    <a href="{{ path('product_show', {'id': product.id}) }}" class="text-decoration-none text-dark stretched-link">
+                                        {{ product.nom }}
+                                    </a>
+                                </h6>
+
+                                <div class="mt-auto d-flex align-items-end justify-content-between">
+                                    <span class="fs-5 fw-bold text-primary">{{ product.prix }} DT</span>
+                                    <a href="{{ path('cart_add', {'id': product.id}) }}" class="btn btn-primary btn-sm rounded-circle shadow-sm position-relative" style="width: 40px; height: 40px; display: grid; place-items: center; z-index: 5;">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

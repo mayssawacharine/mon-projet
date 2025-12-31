@@ -16,9 +16,6 @@ class ProduitRepository extends ServiceEntityRepository
         parent::__construct($registry, Produit::class);
     }
 
-    /**
-     * Méthode pour l'admin - retourne tous les produits avec leur catégorie
-     */
     public function findAllWithCategory(): array
     {
         return $this->createQueryBuilder('p')
@@ -28,71 +25,38 @@ class ProduitRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
-
-    /**
-     * Recherche des produits (pour filtres admin)
-     */
-    public function search(string $search = null, string $category = null, bool $disponible = null): array
-    {
-        $qb = $this->createQueryBuilder('p')
-            ->leftJoin('p.category', 'c')
-            ->addSelect('c');
-
-        if ($search) {
-            $qb->andWhere('p.nom LIKE :search OR p.description LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
-        }
-
-        if ($category) {
-            $qb->andWhere('c.nom = :category')
-                ->setParameter('category', $category);
-        }
-
-        if ($disponible !== null) {
-            $qb->andWhere('p.disponible = :disponible')
-                ->setParameter('disponible', $disponible);
-        }
-
-        return $qb->orderBy('p.nom', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    // Méthode existante que tu avais déjà
-    public function findFilteredProducts(?string $search, ?string $categoryName, ?string $sortAlpha, ?string $sortPrice): array
+    public function findFilteredProducts(?string $search, ?string $categoryName, ?string $sortPrice, ?float $maxPrice): array
     {
         $qb = $this->createQueryBuilder('p')
             ->join('p.category', 'c')
             ->addSelect('c');
 
+        // 1. Search Filter
         if ($search) {
-            $qb->andWhere('p.nom LIKE :search')
+            $qb->andWhere('p.nom LIKE :search OR p.description LIKE :search')
                 ->setParameter('search', '%' . $search . '%');
         }
 
+        // 2. Category Filter
         if ($categoryName) {
             $qb->andWhere('c.nom LIKE :catName')
                 ->setParameter('catName', '%' . $categoryName . '%');
         }
 
+        // 3. Max Price Filter (▼▼▼ ADDED THIS BLOCK ▼▼▼)
+        if ($maxPrice) {
+            $qb->andWhere('p.prix <= :maxPrice')
+                ->setParameter('maxPrice', $maxPrice);
+        }
+
+        // 4. Sorting Logic
         if ($sortPrice === 'low') {
             $qb->orderBy('p.prix', 'ASC');
         } elseif ($sortPrice === 'high') {
             $qb->orderBy('p.prix', 'DESC');
-        }
-
-        if ($sortAlpha === 'asc') {
-            if ($sortPrice) {
-                $qb->addOrderBy('p.nom', 'ASC');
-            } else {
-                $qb->orderBy('p.nom', 'ASC');
-            }
-        } elseif ($sortAlpha === 'desc') {
-            if ($sortPrice) {
-                $qb->addOrderBy('p.nom', 'DESC');
-            } else {
-                $qb->orderBy('p.nom', 'DESC');
-            }
+        } else {
+            // Default sort (e.g., by Name) if no specific sort requested
+            $qb->orderBy('p.nom', 'ASC');
         }
 
         return $qb->getQuery()->getResult();

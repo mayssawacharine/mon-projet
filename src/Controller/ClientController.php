@@ -15,7 +15,7 @@ use App\Entity\Reservation;
 
 class ClientController extends AbstractController
 {
-    #[Route('/', name: 'home')]
+    #[Route('/', name: 'app_home')]
     public function home(
         Request $request,
         SessionInterface $session,
@@ -24,44 +24,49 @@ class ClientController extends AbstractController
         // 1. Get Query Parameters
         $q = $request->query->get('q');
         $category = $request->query->get('category');
-        $alphabetical = $request->query->get('alphabetical');
-        $price = $request->query->get('price');
+        $price = $request->query->get('price'); // e.g., "8"
+        $sort = $request->query->get('sort');
 
-        // 2. Fetch Filtered Results from Database
-        $results = $produitRepo->findFilteredProducts($q, $category, $alphabetical, $price);
+        // 2. Map Sort Parameter
+        $repoSortPrice = null;
+        if ($sort === 'price_asc') {
+            $repoSortPrice = 'low';
+        } elseif ($sort === 'price_desc') {
+            $repoSortPrice = 'high';
+        }
 
-        // 3. Fetch separate lists
-        $foods = $produitRepo->findFilteredProducts(null, 'Food', null, null);
-        $drinks = $produitRepo->findFilteredProducts(null, 'Drinks', null, null);
+        // 3. Fetch Filtered Results
+        // ▼▼▼ CHANGED THIS LINE: Added $price as the 4th argument ▼▼▼
+        $products = $produitRepo->findFilteredProducts($q, $category, $repoSortPrice, $price);
 
-        // 🛒 CART SESSION
+        // 4. Randomize only if no filters are active
+        if (!$q && !$category && !$sort && !$price) {
+            shuffle($products);
+        }
+
+        // 5. Cart Session
         $cart = $session->get('cart', []);
 
         return $this->render('client/home.html.twig', [
-            'foods' => $foods,
-            'drinks' => $drinks,
-            'results' => $results,
+            'products' => $products,
             'cart' => $cart,
+            'currentCategory' => $category,
+            'currentSort' => $sort
         ]);
     }
 
-    // ============ MÉTHODE CORRIGÉE ============
     #[Route('/client/dashboard', name: 'app_client_dashboard')]
     public function dashboard(EntityManagerInterface $entityManager): Response
     {
-        // Vérifier que l'utilisateur est connecté
         if (!$this->getUser()) {
-            $this->addFlash('error', 'Vous devez être connecté pour accéder au dashboard.');
             return $this->redirectToRoute('app_login');
         }
 
         $client = $this->getUser();
 
-        // Récupérer les commandes - CORRECTION ICI
         $commandes = $entityManager->getRepository(Commande::class)
             ->findBy(['client' => $client], ['dateCommande' => 'DESC']);
 
-        // Récupérer les réservations - CORRECTION ICI
         $reservations = $entityManager->getRepository(Reservation::class)
             ->findBy(['client' => $client], ['dateReservation' => 'DESC']);
 

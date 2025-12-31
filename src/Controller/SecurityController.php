@@ -1,5 +1,4 @@
 <?php
-// src/Controller/SecurityController.php
 
 namespace App\Controller;
 
@@ -13,24 +12,21 @@ class SecurityController extends AbstractController
     #[Route(path: '/login', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // 1. Rediriger les utilisateurs déjà connectés
+        // Redirect if already logged in
         if ($this->getUser()) {
-            $user = $this->getUser();
-
-            if (in_array("ROLE_ADMIN", $user->getRoles(), strict: true)) {
-                // CORRIGEZ ICI : 'admin_dashboard' au lieu de 'app_admin_dashboard'
+            // Check roles for redirection
+            if (in_array("ROLE_ADMIN", $this->getUser()->getRoles(), true)) {
+                // Make sure you have a route named 'admin_dashboard'
                 return $this->redirectToRoute('admin_dashboard');
             }
-
-            // Redirection par défaut pour les autres rôles
             return $this->redirectToRoute('app_client_dashboard');
         }
 
-        // Récupérer l'erreur de connexion
+        // Get login error if any
         $error = $authenticationUtils->getLastAuthenticationError();
-        // Dernier nom d'utilisateur
         $lastUsername = $authenticationUtils->getLastUsername();
 
+        // Render fallback page (in case Modal isn't used)
         return $this->render('security/login.html.twig', [
             'last_username' => $lastUsername,
             'error' => $error
@@ -40,6 +36,6 @@ class SecurityController extends AbstractController
     #[Route(path: '/logout', name: 'app_logout')]
     public function logout(): void
     {
-        throw new \Exception('This method can be blank - it will be intercepted by the logout key on your firewall.');
+        throw new \LogicException('This method can be blank - it will be intercepted by the logout key on your firewall.');
     }
 }

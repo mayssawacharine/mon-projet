@@ -12,9 +12,11 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+#[Route('/cart')]
 class CartController extends AbstractController
 {
-    #[Route('/cart', name: 'cart')]
+    // RENAMED to 'app_cart' to match base.html.twig
+    #[Route('/', name: 'app_cart')]
     public function index(SessionInterface $session, ProduitRepository $produitRepo): Response
     {
         $cart = $session->get('cart', []);
@@ -25,7 +27,7 @@ class CartController extends AbstractController
             $produit = $produitRepo->find($id);
             if ($produit) {
                 $cartData[] = [
-                    'produit' => $produit,
+                    'produit' => $produit, // Note: Key is 'produit'
                     'quantity' => $quantity
                 ];
                 $total += $produit->getPrix() * $quantity;
@@ -38,7 +40,7 @@ class CartController extends AbstractController
         ]);
     }
 
-    #[Route('/cart/add/{id}', name: 'cart_add')]
+    #[Route('/add/{id}', name: 'cart_add')]
     public function add(Produit $produit, SessionInterface $session): Response
     {
         $cart = $session->get('cart', []);
@@ -52,10 +54,11 @@ class CartController extends AbstractController
 
         $session->set('cart', $cart);
 
-        return $this->redirectToRoute('home');
+        // FIXED: Redirects to 'app_home' instead of 'home'
+        return $this->redirectToRoute('app_home');
     }
 
-    #[Route('/cart/remove/{id}', name: 'cart_remove')]
+    #[Route('/remove/{id}', name: 'cart_remove')]
     public function remove($id, SessionInterface $session): Response
     {
         $cart = $session->get('cart', []);
@@ -65,10 +68,12 @@ class CartController extends AbstractController
         }
 
         $session->set('cart', $cart);
-        return $this->redirectToRoute('cart');
+
+        // FIXED: Redirects to 'app_cart'
+        return $this->redirectToRoute('app_cart');
     }
 
-    #[Route('/cart/checkout', name: 'cart_checkout')]
+    #[Route('/checkout', name: 'cart_checkout')]
     public function checkout(SessionInterface $session, EntityManagerInterface $em, ProduitRepository $produitRepo): Response
     {
         if (!$this->getUser()) {
@@ -79,14 +84,14 @@ class CartController extends AbstractController
         $cart = $session->get('cart', []);
         if (empty($cart)) {
             $this->addFlash('warning', 'Your cart is empty.');
-            return $this->redirectToRoute('cart');
+            return $this->redirectToRoute('app_cart');
         }
 
         $client = $this->getUser();
         $commande = new Commande();
         $commande->setClient($client);
         $commande->setDateCommande(new \DateTime());
-        $commande->setStatus('Pending');
+        $commande->setStatus('Pending'); // Consider using 'En attente' if your Enum expects French
         $commande->setModePaiement('Cash on delivery');
 
         $total = 0;
@@ -115,7 +120,7 @@ class CartController extends AbstractController
         return $this->redirectToRoute('app_client_dashboard');
     }
 
-    #[Route('/cart/increase/{id}', name: 'cart_increase')]
+    #[Route('/increase/{id}', name: 'cart_increase')]
     public function increase($id, SessionInterface $session): Response
     {
         $cart = $session->get('cart', []);
@@ -123,10 +128,10 @@ class CartController extends AbstractController
             $cart[$id]++;
         }
         $session->set('cart', $cart);
-        return $this->redirectToRoute('cart');
+        return $this->redirectToRoute('app_cart');
     }
 
-    #[Route('/cart/decrease/{id}', name: 'cart_decrease')]
+    #[Route('/decrease/{id}', name: 'cart_decrease')]
     public function decrease($id, SessionInterface $session): Response
     {
         $cart = $session->get('cart', []);
@@ -138,6 +143,6 @@ class CartController extends AbstractController
             }
         }
         $session->set('cart', $cart);
-        return $this->redirectToRoute('cart');
+        return $this->redirectToRoute('app_cart');
     }
 }

@@ -1,55 +1,72 @@
 <?php
-// src/Controller/RegistrationController.php
 
-namespace App\Controller;
+namespace App\Form;
 
 use App\Entity\Client;
-use App\Form\ClientRegistrationFormType;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 
-class RegistrationController extends AbstractController
+class ClientRegistrationFormType extends AbstractType
 {
-    #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // 1. Create a new instance of the Client entity
-        $user = new Client();
+        $builder
+            ->add('prenom', TextType::class, [
+                'label' => 'Prénom',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Prénom']
+            ])
+            ->add('nom', TextType::class, [
+                'label' => 'Nom',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Nom']
+            ])
+            ->add('adresse', TextareaType::class, [ // or TextType
+                'label' => 'Adresse de livraison',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Votre adresse complète (Rue, Ville, Code postal)',
+                    'rows' => 3
+                ],
+                'constraints' => [
+                    new NotBlank(['message' => 'Veuillez entrer votre adresse'])
+                ]
+            ])
+            ->add('telephone', TextType::class, [
+                'label' => 'Téléphone',
+                'attr' => [
+                    'placeholder' => 'Numéro de téléphone',
+                    'class' => 'form-control' // Ensures standard styling
+                ],
+                'constraints' => [
+                    new NotBlank(['message' => 'Veuillez entrer un numéro de téléphone'])
+                ]
+            ])
+            ->add('email', EmailType::class, [
+                'label' => 'E-mail',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'email@exemple.com']
+            ])
+            ->add('plainPassword', PasswordType::class, [
+                'mapped' => false,
+                'label' => 'Mot de passe',
+                'attr' => ['autocomplete' => 'new-password', 'class' => 'form-control', 'placeholder' => 'Mot de passe'],
+                'constraints' => [
+                    new NotBlank(['message' => 'Veuillez entrer un mot de passe']),
+                    new Length(['min' => 6, 'minMessage' => 'Au moins {{ limit }} caractères']),
+                ],
+            ])
+        ;
+    }
 
-        // 2. Create the form, binding it to the Client entity
-        $form = $this->createForm(ClientRegistrationFormType::class, $user);
-        $form->handleRequest($request);
-
-        // 3. Process the form submission
-        if ($form->isSubmitted() && $form->isValid()) {
-
-            // Hash the password
-            $user->setPassword(
-                $userPasswordHasher->hashPassword(
-                    $user,
-                    $form->get('plainPassword')->getData()
-                )
-            );
-
-            // Set the default role for a new registration
-            // The Client entity should inherently have ROLE_CLIENT, but we set it explicitly here.
-            $user->setRoles(['ROLE_CLIENT']);
-
-            // Save the new Client entity to the database
-            $entityManager->persist($user);
-            $entityManager->flush();
-
-            // Redirect the new user to the login page or client dashboard
-            // If you want to automatically log them in, you need more services injected.
-            return $this->redirectToRoute('app_login');
-        }
-
-        return $this->render('registration/register.html.twig', [
-            'registrationForm' => $form->createView(),
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'data_class' => Client::class,
         ]);
     }
 }

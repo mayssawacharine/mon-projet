@@ -1,21 +1,61 @@
-{# templates/registration/register.html.twig #}
-
 {% extends 'base.html.twig' %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Inscription{% endblock %}
 
 {% block body %}
-    <h1>Register as a New Client</h1>
+    <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3>Créer un compte</h3>
+                    </div>
+                    <div class="card-body">
+                        {{ form_start(registrationForm) }}
 
-    {{ form_errors(registrationForm) }}
+                        {# Display any global errors #}
+                        {{ form_errors(registrationForm) }}
 
-    {{ form_start(registrationForm) }}
-    {{ form_row(registrationForm.email) }}
-    {{ form_row(registrationForm.plainPassword, {
-        label: 'Password'
-    }) }}
-    {{ form_row(registrationForm.agreeTerms) }}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form_row(registrationForm.prenom, {'label': 'Prénom'}) }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_row(registrationForm.nom, {'label': 'Nom'}) }}
+                            </div>
+                        </div>
 
-    <button type="submit" class="btn btn-primary">Register</button>
-    {{ form_end(registrationForm) }}
+                        <div class="mb-3">
+                            {{ form_row(registrationForm.email) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_row(registrationForm.telephone) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_row(registrationForm.adresse) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_row(registrationForm.plainPassword, {
+                                'label': 'Mot de passe'
+                            }) }}
+                        </div>
+
+                        {# I removed agreeTerms since it is not in your PHP form #}
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">S'inscrire</button>
+                        </div>
+
+                        {{ form_end(registrationForm) }}
+                    </div>
+                    <div class="card-footer text-center">
+                        <small>Déjà un compte ? <a href="{{ path('app_login') }}">Se connecter</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

@@ -2,24 +2,31 @@
 
 namespace App\Controller;
 
+use App\Entity\Administrateur;
+use App\Entity\Commande;
 use App\Repository\CommandeRepository;
 use App\Repository\ReservationRepository;
 use App\Repository\ClientRepository;
 use App\Repository\ProduitRepository;
 use App\Entity\Client;
+use App\Entity\Produit;
 use App\Form\ClientAdminType;
 use App\Form\ClientRegistrationFormType;
+use App\Form\ProduitType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Entity\Produit;
-use App\Form\ProduitType;
+// Import the Slugger for safe filename handling
+use Symfony\Component\String\Slugger\SluggerInterface;
+
+#[Route('/admin')]
 class AdministrateurController extends AbstractController
 {
-    #[Route('/admin/dashboard', name: 'admin_dashboard')]
+    #[Route('/dashboard', name: 'admin_dashboard')]
     public function dashboard(
         CommandeRepository $commandeRepository,
         ReservationRepository $reservationRepository
@@ -30,27 +37,15 @@ class AdministrateurController extends AbstractController
             'chiffre_affaires' => 0,
         ];
 
-        $recentOrders = [];
-        $recentReservations = [];
-
         try {
+            $recentOrders = $commandeRepository->findBy([], ['dateCommande' => 'DESC'], 5);
+            $recentReservations = $reservationRepository->findBy([], ['dateReservation' => 'DESC'], 5);
+
             $allOrders = $commandeRepository->findAll();
             $stats['commandes_aujourdhui'] = count($allOrders);
 
             $allReservations = $reservationRepository->findAll();
             $stats['reservations_aujourdhui'] = count($allReservations);
-
-            $recentOrders = $allOrders;
-            usort($recentOrders, function($a, $b) {
-                return $b->getDateCommande() <=> $a->getDateCommande();
-            });
-            $recentOrders = array_slice($recentOrders, 0, 5);
-
-            $recentReservations = $allReservations;
-            usort($recentReservations, function($a, $b) {
-                return $b->getDateReservation() <=> $a->getDateReservation();
-            });
-            $recentReservations = array_slice($recentReservations, 0, 5);
 
             foreach ($allOrders as $order) {
                 $stats['chiffre_affaires'] += (float) $order->getMontantTotal();
@@ -58,41 +53,71 @@ class AdministrateurController extends AbstractController
 
         } catch (\Exception $e) {
             $stats = [
-                'commandes_aujourdhui' => 15,
-                'reservations_aujourdhui' => 8,
-                'chiffre_affaires' => 1250.75,
+                'commandes_aujourdhui' => 0,
+                'reservations_aujourdhui' => 0,
+                'chiffre_affaires' => 0,
             ];
+            $recentOrders = [];
+            $recentReservations = [];
         }
 
         return $this->render('Admin/dashboard.html.twig', [
-            'user' => $this->getUser(),
             'stats' => $stats,
             'recentOrders' => $recentOrders,
             'recentReservations' => $recentReservations,
         ]);
     }
 
-    #[Route('/admin/commandes', name: 'admin_commandes')]
+    #[Route('/commandes', name: 'admin_commandes')]
     public function commandes(CommandeRepository $commandeRepository): Response
     {
-        $commandes = $commandeRepository->findAll();
-        usort($commandes, function($a, $b) {
-            return $b->getDateCommande() <=> $a->getDateCommande();
-        });
+        $commandes = $commandeRepository->findBy([], ['dateCommande' => 'DESC']);
 
         return $this->render('Admin/commandes/index.html.twig', [
             'commandes' => $commandes,
             'statuts' => ['en_attente', 'en_cours', 'terminee', 'annulee'],
         ]);
     }
+    #[Route('/commandes/{id}/update-status', name: 'admin_commande_update_status', methods: ['POST'])]
+    public function updateCommandeStatus(Request $request, Commande $commande, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('update_status_' . $commande->getId(), $request->request->get('_token'))) {
 
-    #[Route('/admin/reservations', name: 'admin_reservations')]
+            $newStatus = $request->request->get('statut');
+            $allowedStatuses = ['en_attente', 'en_cours', 'terminee', 'annulee'];
+
+            if (in_array($newStatus, $allowedStatuses)) {
+
+                // 1. Update the Status
+                $commande->setStatus($newStatus);
+
+                // 2. === SAVE THE ADMIN ID ===
+                // Get the current logged in user
+                $user = $this->getUser();
+
+                // Check if the user is actually an Administrator
+                if ($user instanceof Administrateur) {
+                    $commande->setAdministrateur($user);
+                }
+                // ============================
+
+                $entityManager->flush();
+
+                $this->addFlash('success', 'Statut mis à jour par ' . $user->getPrenom() . '.');
+            } else {
+                $this->addFlash('error', 'Statut invalide.');
+            }
+        } else {
+            $this->addFlash('error', 'Jeton de sécurité invalide.');
+        }
+
+        return $this->redirectToRoute('admin_commandes');
+    }
+
+    #[Route('/reservations', name: 'admin_reservations')]
     public function reservations(ReservationRepository $reservationRepository): Response
     {
-        $reservations = $reservationRepository->findAll();
-        usort($reservations, function($a, $b) {
-            return $b->getDateReservation() <=> $a->getDateReservation();
-        });
+        $reservations = $reservationRepository->findBy([], ['dateReservation' => 'DESC']);
 
         return $this->render('Admin/reservations/index.html.twig', [
             'reservations' => $reservations,
@@ -100,7 +125,7 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/clients', name: 'admin_clients')]
+    #[Route('/clients', name: 'admin_clients')]
     public function clients(ClientRepository $clientRepository): Response
     {
         $clients = $clientRepository->findAll();
@@ -109,19 +134,16 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    // CORRECTION : LA ROUTE 'new' DOIT ÊTRE AVANT LA ROUTE AVEC {id}
-    #[Route('/admin/clients/new', name: 'admin_client_new', methods: ['GET', 'POST'])]
+    #[Route('/clients/new', name: 'admin_client_new', methods: ['GET', 'POST'])]
     public function newClient(Request $request, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher): Response
     {
         $client = new Client();
         $client->setDateInscription(new \DateTime());
 
-        // Utilisez le formulaire d'inscription existant
         $form = $this->createForm(ClientRegistrationFormType::class, $client);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Hasher le mot de passe
             $client->setPassword(
                 $passwordHasher->hashPassword(
                     $client,
@@ -129,9 +151,7 @@ class AdministrateurController extends AbstractController
                 )
             );
 
-            // Par défaut, ROLE_CLIENT
             $client->setRoles(['ROLE_CLIENT']);
-
             $entityManager->persist($client);
             $entityManager->flush();
 
@@ -144,8 +164,7 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    // CETTE ROUTE DOIT ÊTRE APRÈS 'new'
-    #[Route('/admin/clients/{id}', name: 'admin_client_show', methods: ['GET'])]
+    #[Route('/clients/{id}', name: 'admin_client_show', methods: ['GET'])]
     public function showClient(Client $client): Response
     {
         return $this->render('Admin/clients/show.html.twig', [
@@ -153,16 +172,14 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/clients/{id}/edit', name: 'admin_client_edit', methods: ['GET', 'POST'])]
+    #[Route('/clients/{id}/edit', name: 'admin_client_edit', methods: ['GET', 'POST'])]
     public function editClient(Request $request, Client $client, EntityManagerInterface $entityManager): Response
     {
-        // Créez le formule avec ClientAdminType
         $form = $this->createForm(ClientAdminType::class, $client);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
-
             $this->addFlash('success', 'Client modifié avec succès');
             return $this->redirectToRoute('admin_clients');
         }
@@ -173,14 +190,12 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/clients/{id}/delete', name: 'admin_client_delete', methods: ['POST'])]
+    #[Route('/clients/{id}/delete', name: 'admin_client_delete', methods: ['POST'])]
     public function deleteClient(Request $request, Client $client, EntityManagerInterface $entityManager): Response
     {
-        // Vérification du token CSRF pour la sécurité
         if ($this->isCsrfTokenValid('delete'.$client->getId(), $request->request->get('_token'))) {
             $entityManager->remove($client);
             $entityManager->flush();
-
             $this->addFlash('success', 'Client supprimé avec succès');
         } else {
             $this->addFlash('error', 'Token CSRF invalide');
@@ -189,37 +204,36 @@ class AdministrateurController extends AbstractController
         return $this->redirectToRoute('admin_clients');
     }
 
-    #[Route('/admin/produits', name: 'admin_produits')]
+    #[Route('/produits', name: 'admin_produits')]
     public function produits(ProduitRepository $produitRepository): Response
     {
-        // Utilise la méthode avec jointure
-        $produits = $produitRepository->findAllWithCategory();
+        // If 'findAllWithCategory' is a custom method you created, keep it.
+        // Otherwise, revert to: $produits = $produitRepository->findAll();
+        $produits = $produitRepository->findAll();
+        // $produits = $produitRepository->findAllWithCategory();
 
         return $this->render('Admin/produits/index.html.twig', [
             'produits' => $produits,
         ]);
     }
 
-
-    #[Route('/admin/produits/new', name: 'admin_produit_new', methods: ['GET', 'POST'])]
-    public function newProduit(Request $request, EntityManagerInterface $entityManager): Response
+    #[Route('/produits/new', name: 'admin_produit_new', methods: ['GET', 'POST'])]
+    public function newProduit(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
         $produit = new Produit();
-        $produit->setDisponible(true); // Par défaut disponible
+        $produit->setDisponible(true);
 
         $form = $this->createForm(ProduitType::class, $produit);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Gestion de l'image
+            // Handle Image Upload
             $imageFile = $form->get('imageFile')->getData();
 
             if ($imageFile) {
                 $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
-
-                // Solution sans transliterator
-                $safeFilename = preg_replace('/[^A-Za-z0-9_\-]/', '', $originalFilename);
-                $safeFilename = strtolower($safeFilename);
+                // this is needed to safely include the file name as part of the URL
+                $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$imageFile->guessExtension();
 
                 try {
@@ -229,7 +243,7 @@ class AdministrateurController extends AbstractController
                     );
                     $produit->setImage($newFilename);
                 } catch (FileException $e) {
-                    $this->addFlash('warning', 'L\'image n\'a pas pu être téléchargée');
+                    $this->addFlash('warning', 'Erreur upload image: ' . $e->getMessage());
                 }
             }
 
@@ -245,7 +259,7 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/produits/{id}', name: 'admin_produit_show', methods: ['GET'])]
+    #[Route('/produits/{id}', name: 'admin_produit_show', methods: ['GET'])]
     public function showProduit(Produit $produit): Response
     {
         return $this->render('Admin/produits/show.html.twig', [
@@ -253,22 +267,19 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/produits/{id}/edit', name: 'admin_produit_edit', methods: ['GET', 'POST'])]
-    public function editProduit(Request $request, Produit $produit, EntityManagerInterface $entityManager): Response
+    #[Route('/produits/{id}/edit', name: 'admin_produit_edit', methods: ['GET', 'POST'])]
+    public function editProduit(Request $request, Produit $produit, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
         $form = $this->createForm(ProduitType::class, $produit);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Gestion de l'image
+            // Handle Image Upload
             $imageFile = $form->get('imageFile')->getData();
 
             if ($imageFile) {
                 $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
-
-                // Solution sans transliterator
-                $safeFilename = preg_replace('/[^A-Za-z0-9_\-]/', '', $originalFilename);
-                $safeFilename = strtolower($safeFilename);
+                $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$imageFile->guessExtension();
 
                 try {
@@ -277,11 +288,11 @@ class AdministrateurController extends AbstractController
                         $newFilename
                     );
 
-                    // Supprimer l'ancienne image si elle existe
+                    // Delete old image if it exists
                     if ($produit->getImage()) {
-                        $oldImage = $this->getParameter('produits_directory').'/'.$produit->getImage();
-                        if (file_exists($oldImage)) {
-                            unlink($oldImage);
+                        $oldImagePath = $this->getParameter('produits_directory').'/'.$produit->getImage();
+                        if (file_exists($oldImagePath)) {
+                            unlink($oldImagePath);
                         }
                     }
 
@@ -292,7 +303,6 @@ class AdministrateurController extends AbstractController
             }
 
             $entityManager->flush();
-
             $this->addFlash('success', 'Produit modifié avec succès');
             return $this->redirectToRoute('admin_produits');
         }
@@ -303,11 +313,11 @@ class AdministrateurController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/produits/{id}/delete', name: 'admin_produit_delete', methods: ['POST'])]
+    #[Route('/produits/{id}/delete', name: 'admin_produit_delete', methods: ['POST'])]
     public function deleteProduit(Request $request, Produit $produit, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$produit->getId(), $request->request->get('_token'))) {
-            // Supprimer l'image associée
+            // Remove image from folder upon deletion
             if ($produit->getImage()) {
                 $imagePath = $this->getParameter('produits_directory').'/'.$produit->getImage();
                 if (file_exists($imagePath)) {
@@ -317,7 +327,6 @@ class AdministrateurController extends AbstractController
 
             $entityManager->remove($produit);
             $entityManager->flush();
-
             $this->addFlash('success', 'Produit supprimé avec succès');
         } else {
             $this->addFlash('error', 'Token CSRF invalide');
